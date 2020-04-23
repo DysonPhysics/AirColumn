@@ -1,0 +1,632 @@
+﻿
+<head>
+   
+<title>
+  Resonant Air Column
+</title> 
+
+<style>
+.instruction {
+  border: none;
+  color: black;
+  font-family: Arial;
+  text-align: left;
+  font-size: 14px;
+}
+
+.pressHere {
+  border: none;
+  color: black;
+  font-family: Arial;
+  text-align: center;
+  font-size: 16px;
+}
+
+.warning {
+  border: 2px;
+  border-style: double;
+  color: red;
+  font-weight: bold;
+}
+
+.outerTable {
+  border: 1px;
+  color: black;
+}
+
+.innerTable {
+  border: none;
+  padding: 10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- looking at drawing -->
+<p class="warning">
+Loud sounds can damage your hearing or audio equipment.
+<br>
+Do not use this with headphones.
+<br>
+Firstly set your speakers to a low volume.
+<br>
+The "Stop Sound" button should turn the sound off.
+<br>
+
+Then move the volume slider to a low level and press the "Start Sound" button.
+Test the maximum volume is suitable by pressing the "Test Max Sound" button.
+<br>
+Then set the volume slider so the maximum volume is is at a pleasant level.
+</p>
+<p class="instruction">
+Use the buttons below to select the tuning fork frequency and to adjust the temperature.
+<br>
+The move the tuning fork and tube by using the arrow keys on your keypad
+ or the buttons below or by dragging the tuning fork with your mouse
+<br>
+Find the height where you get resonance (the sound gets much louder). 
+Use the ruler to measure this height.
+<br> 
+Record temperature, height and frequency.
+Use height and all the different frequencies to assertain the speed of sound. 
+This will require a table of results and a graph.
+<div class="settingsBar">
+  <div class="left">
+    <span>Volume: </span>
+    <input type="range" min="0.0" max="1.0" step="0.01"
+        value="0.5" list="volumes" name="volume">
+    <datalist id="volumes">
+      <option value="0.0" label="Mute">
+      <option value="1.0" label="100%">
+    </datalist>
+
+	<button type="button" onclick="startSound()">
+      Start sound
+    </button>
+
+	<button type="button" onclick="stopSound()">
+      Stop sound
+    </button>
+
+	<button type="button" onmousedown="loudestSound()" onmouseup="normalSound()">
+      Test Max. Sound
+    </button>
+<!-- 
+    <span>Length: </span>
+    <input type="range" min="0.0" max="1.0" step="0.01"
+        value="0.3" list="lengths" name="length">
+    <datalist id="lengths">
+      <option value="0.00m" label="under">
+      <option value="1.00m" label="full">
+    </datalist> 
+-->
+
+ </div>
+  
+<!-- <p id="maxSound">sound</p> -->
+
+<!-- <p id="ShowVol">volume</p> -->
+
+<!-- <p id="ShowLength">length</p>  -->
+
+
+
+
+<canvas id="expCanvas" width="600" height="450" style="border:2px solid #000000;"></canvas>
+<div style="text-align:center;width:600px;font-family='Arial'">
+<table class="outerTable">
+  <tr class="pressHere" >
+    <td width="50%">
+      Select tuning fork: 
+    </td>
+    <td width="25%">
+      Move Pipe:
+    </td>
+    <td width="25%">
+      Change Temp.
+    </td>
+  </tr>
+  <tr>
+    <td class="innerTable">
+      <button onclick="forkFreq(262)">C</button>
+      <button onclick="forkFreq(294)">D</button>
+      <button onclick="forkFreq(330)">E</button>
+      <button onclick="forkFreq(350)">F</button>
+	  <button onclick="forkFreq(392)">G</button>
+      <button onclick="forkFreq(440)">A</button>
+      <button onclick="forkFreq(494)">B</button>
+      <button onclick="forkFreq(523)">C</button>
+    </td>
+	<td>
+	  <table  class="innerTable">
+	    <tr>
+		  <td></td>
+		  <td><button onclick="keyPressed(38)"><img width=20px" height=20px" src="./UpArrow.png"></button></td>
+		  <td></td>
+		</tr>
+	    <tr>
+		  <td><button onclick="keyPressed(37)"><img width=20px" height=20px" src="./LeftArrow.png"></button></td>
+		  <td></td>
+		  <td><button onclick="keyPressed(39)"><img width=20px" height=20px" src="./RightArrow.png"></button></td>
+		</tr>
+	    <tr>
+		  <td></td>
+		  <td><button onclick="keyPressed(40)"><img width=20px" height=20px" src="./DownArrow.png"></button></td>
+		  <td></td>
+		</tr>
+	  </table>
+	</td>
+	<td>
+	  <table  class="innerTable">
+	    <tr>
+		  <td><button onclick="keyPressed(187)"><img width=20px" height=20px" src="./Plus.png"></button></td>		  
+		</tr>
+	    <tr>
+		</tr>
+	    <tr>
+		  <td><button onclick="keyPressed(189)"><img width=20px" height=20px" src="./Minus.png"></button></td>		  
+		</tr>
+	  </table>
+
+    </td>
+  </tr>
+</table> 
+</div>
+<p id="demo">Some random Stuff</p>
+<p id="keyeddemo">Some random key</p>
+
+
+<script>
+
+
+// get canvas related references
+var canvas = document.getElementById("expCanvas");
+var ctx = canvas.getContext("2d");
+var BB = canvas.getBoundingClientRect();
+var offsetX = BB.left;
+var offsetY = BB.top;
+var WIDTH = canvas.width;
+var HEIGHT = canvas.height;
+var pressedKey = false;
+
+
+// drag related variables
+var dragok = false;
+var startX;
+var startY;
+var myKey = false;
+var frameNo = 0;
+var tempValue = 20;
+var tuneFq = 440;
+
+// define the top of the water as all heights go from here
+waterTop = 245;
+tankLeft = 200;
+tankHeight = 200;
+waterDepth = tankHeight - 10;
+tankBottom = waterTop + waterDepth;
+tankWidth = 250;
+tankBorder = 5;
+tankRight = tankLeft + tankWidth;
+tankTop = tankBottom - tankHeight;
+
+// define the bottom of the temperature as all heights go from here
+tempBottom = 200;
+tempMin = -50;
+tempMax = 80;
+
+  audioHasSetup = false;
+  // create web audio api context
+  // done globally  
+  var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // create Oscillator node
+  // done globally
+  var masterVolumeOsc = null;
+  
+
+  var soundShape = 'sine';
+
+  volumeControl = document.querySelector("input[name='volume']");  
+  volumeControl.addEventListener("change", changeVolume, false);
+
+//  lengthControl = document.querySelector("input[name='length']");  
+//  lengthControl.addEventListener("change", changeOfLength, false);
+
+
+
+function setup() {
+  masterGainNode = audioCtx.createGain();
+  masterGainNode.connect(audioCtx.destination);
+  masterGainNode.gain.value = volumeControl.value;
+  audioHasSetup = true; 
+}
+
+
+
+function startSound() {
+
+  if (!audioHasSetup) {
+//      document.getElementById('ShowVol').innerHTML = "setting up";
+	  setup();
+  } else {
+//    document.getElementById('ShowVol').innerHTML = "already setup";
+  }
+//  document.getElementById('maxSound').innerHTML = "Starting Sound";
+  masterVolumeOsc = audioCtx.createOscillator();
+  masterVolumeOsc.connect(masterGainNode);
+  masterVolumeOsc.type = soundShape;
+  masterVolumeOsc.frequency.setValueAtTime(tuneFq, audioCtx.currentTime); // value in hertz
+  masterVolumeOsc.connect(audioCtx.destination);
+  masterVolumeOsc.start();
+ 
+}
+
+function stopSound() {
+//  document.getElementById('maxSound').innerHTML = "Stopping Sound";
+//   masterGainNode.gain.value = masterVolume;
+  masterVolumeOsc.stop();
+}
+//onmousedown="loudestSound()" onmouseup="normalSound()
+function loudestSound() {
+  document.getElementById('maxSound').innerHTML = "Loudest Sound";  modulateBy = soundForLength();
+  masterVolume = volumeControl.value * 10;
+  //document.getElementById('ShowLength').innerHTML = masterVolume;
+  masterGainNode.gain.value = masterVolume;
+//  masterVolumeOsc.stop();
+}
+
+function normalSound() {
+  document.getElementById('maxSound').innerHTML = "Normal Sound";
+  modulateBy = soundForLength();
+  masterVolume = volumeControl.value * modulateBy;
+  //document.getElementById('ShowLength').innerHTML = masterVolume;
+  masterGainNode.gain.value = masterVolume;
+//  masterVolumeOsc.stop();
+}
+function changeVolume(event) {
+//  document.getElementById('ShowVol').innerHTML = volumeControl.value;
+  masterGainNode.gain.value = volumeControl.value
+  
+}
+
+function soundForLength() {
+  qw = quarterWave();
+  soundLength = pipeAbove();
+  lengthAway = Math.abs(soundLength-qw);   
+  indexAway = lengthAway*lengthAway*10000; 
+  ResonantVolume = 0.005 + 9.995 * Math.exp(-indexAway)
+//  document.getElementById('ShowLength').innerHTML = "index away " + indexAway;
+  return ResonantVolume;
+}
+
+function setVolume() {
+//  modulateBy = soundForLength(lengthControl.value);
+  modulateBy = soundForLength();
+  //document.getElementById('ShowLength').innerHTML = modulateBy;
+  masterGainNode.gain.value = volumeControl.value * modulateBy;
+  }
+
+
+function changeOfLength() {
+  modulateBy = soundForLength();
+  masterVolume = volumeControl.value * modulateBy;
+  //document.getElementById('ShowLength').innerHTML = masterVolume;
+  masterGainNode.gain.value = masterVolume;
+}
+
+
+
+
+
+var tuneFork = {
+    x: 200,
+    y: 30,
+    width: 97,
+    height: 20,
+    fill: "#000000",
+    isDragging: false,
+	draw : function() {
+      ctx.fillStyle = tuneFork.fill;
+
+      rect(tuneFork.x, tuneFork.y+2, 50, 16);
+	  rect(tuneFork.x+50, tuneFork.y+6, 20, 7);
+      rect(tuneFork.x+67, tuneFork.y, 50, 7);
+      rect(tuneFork.x+67, tuneFork.y+12, 50, 7);
+// do the pipe as part of the fork	
+      resonantPipe.left = tuneFork.x+90;
+	  resonantPipe.top = tuneFork.y+30;
+	  ctx.fillStyle = "#FFFFFF";
+      rect(resonantPipe.left, resonantPipe.top, resonantPipe.width, resonantPipe.height);
+    
+
+	  ctx.font = "12px Arial";
+	  ctx.fillStyle = "#FFFF00";
+      ctx.fillText(tuneFq + " Hz", tuneFork.x + 2, tuneFork.y + 16); 
+	}
+	
+};
+
+function forkFreq (freq) {
+   tuneFq = freq;
+   draw();
+   masterVolumeOsc.frequency.setValueAtTime(tuneFq, audioCtx.currentTime); // value in hertz
+
+};
+
+
+var tempTherm = {
+    top : 350,
+    thermCentre : 500,
+	liquidWidth : 3,
+	glassWidth : 4,
+	liquidBulb : 6,
+	glassBulb : 7,
+    glassHeight : 145,
+	offset :60,
+	fill: "#FF0000",
+	draw : function() {
+
+      ctx.fillStyle = "#FFFFFF"; 
+      ctx.beginPath();
+      ctx.arc(tempTherm.thermCentre, tempBottom+tempTherm.liquidBulb , tempTherm.glassBulb, 0, 2 * Math.PI);
+      ctx.fill(); 
+
+	  rect(tempTherm.thermCentre-tempTherm.glassWidth, tempBottom-tempTherm.glassHeight, 2 * tempTherm.glassWidth, tempTherm.glassHeight);
+
+      ctx.fillStyle = tempTherm.fill; 
+      ctx.beginPath();
+      ctx.arc(tempTherm.thermCentre, tempBottom+tempTherm.liquidBulb , tempTherm.liquidBulb, 0, 2 * Math.PI);
+      ctx.fill(); 
+	  
+      ctx.fillStyle = "#FF0000"; 
+	  tempTherm.top = tempBottom - (tempValue+tempTherm.offset);
+      rect(tempTherm.thermCentre - tempTherm.liquidWidth, tempTherm.top, 2 * tempTherm.liquidWidth, tempValue + tempTherm.offset);
+
+	  
+	  ctx.font = "16px Arial";
+	  ctx.fillStyle = "#FFFFFF";
+      rect(tempTherm.thermCentre +25, tempTherm.top - 17, 60, 25);
+
+	  ctx.fillStyle = "#000000";
+      ctx.fillText(tempValue, tempTherm.thermCentre + 30, tempTherm.top); 
+      ctx.fillText("C", tempTherm.thermCentre + 62, tempTherm.top ); 
+	  ctx.font = "12px Arial";
+      ctx.fillText("o", tempTherm.thermCentre + 55, tempTherm.top-5 ); 
+	}
+	
+};
+
+var ruler = {
+    left: 350,
+    top: 10,
+    width: 25,
+    height: null,
+    fill: "#FFEC9E",
+    marks: "#000000",
+    isDragging: false,
+	draw : function() {
+	  ruler.height = tankBottom - ruler.top;
+      ctx.fillStyle = ruler.fill;
+	  rect(ruler.left, ruler.top, ruler.width, ruler.height);
+	  var i;
+	  ctx.fillStyle = ruler.marks;
+
+	  ctx.fillText("cm", ruler.left +12, 25);
+
+
+	  for (deci = 0; deci < 8; deci ++ ) {
+	      deciHeight = 50 * deci + ruler.top;
+	      rect(ruler.left, deciHeight, 10, 2);
+		  ctx.fillText(10 * deci, ruler.left +12, deciHeight+5); 
+          for (centi = 1; centi < 10; centi++) { 
+	  	      rect(ruler.left, 5*centi + deciHeight, 5, 1);
+			  if (centi == 5) {
+			      rect(ruler.left, 5*centi + deciHeight, 8, 1);
+		      }
+	      }
+	  }
+	}
+	
+};
+
+var waterTank = {
+
+    draw : function(){
+      ctx.fillStyle = "rgba(127,127,255,0.9)";
+      rect(tankLeft, waterTop, tankWidth, waterDepth);
+
+      ctx.fillStyle = "#000000";
+      rect(tankLeft, tankTop, tankBorder, tankHeight);
+      rect(tankRight, tankTop, tankBorder, tankHeight);
+      rect(tankLeft, tankBottom, tankWidth+tankBorder, tankBorder);
+  	}
+	
+};
+
+var resonantPipe = {
+    left: 300,
+    top: 190,
+    width: 30,
+    height: 245,
+	draw : function(){
+	    ctx.fillStyle = "#FFFFFF";
+        //rect(resonantPipe.left, resonantPipe.top, resonantPipe.width, resonantPipe.height);
+    }
+}
+
+function pipeAbove(){
+	    above = (waterTop - resonantPipe.top)/500;
+		return above;
+}
+
+function keyPressed(buttonPress){
+	if (buttonPress == 37) {pipeLeft()}
+	if (buttonPress == 39) {pipeRight()}
+	if (buttonPress == 38) {pipeUp()}
+	if (buttonPress == 40) {pipeDown()}
+	if (buttonPress == 107) {tempUp()}
+	if (buttonPress == 109) {tempDown()}
+	if (buttonPress == 187) {tempUp()}
+	if (buttonPress == 189) {tempDown()}
+
+    draw();
+}
+
+function pipeUp() {
+	if (resonantPipe.top  > 30 ) {tuneFork.y -= 1; }
+}	
+
+function pipeDown() {
+	if ((resonantPipe.top + resonantPipe.height) < tankBottom) {tuneFork.y += 1; }
+}	
+
+function pipeLeft() {
+//	if (resonantPipe.left > (tankLeft+tankBorder)) {resonantPipe.left -= 1; }
+    if (resonantPipe.left > (tankLeft+tankBorder)) {tuneFork.x -= 1; }
+}	
+
+function pipeRight() {
+    if (resonantPipe.left < (tankRight - resonantPipe.width)) {tuneFork.x += 1; }
+}	
+
+function tempUp() {
+	if (tempValue < tempMax ) {tempValue += 1; }
+}	
+
+function tempDown() {
+	if (tempValue > tempMin ) {tempValue -= 1; }
+}
+
+function quarterWave(){
+   ws = 20.05 * Math.sqrt(273.15 + tempValue);
+   lfour = ws / (4 * tuneFq );
+   document.getElementById('keyeddemo').innerHTML = lfour;
+   return lfour;
+}
+
+// draw a single rect
+function rect(x, y, w, h) {
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.closePath();
+    ctx.fill();
+}
+
+// clear the canvas
+function clear() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+}
+
+// redraw the scene
+function draw() {
+    clear();
+    ctx.fillStyle = "#BAB7B8";
+    rect(0, 0, WIDTH, HEIGHT);
+	frameNo +=1;
+	document.getElementById('demo').innerHTML = frameNo;
+
+	waterTank.draw();
+	ruler.draw();
+	tempTherm.draw();
+	resonantPipe.draw();
+	tuneFork.draw();
+	changeOfLength();
+}
+
+// listen for mouse events
+canvas.onmousedown = myDown;
+canvas.onmouseup = myUp;
+canvas.onmousemove = myMove;
+window.addEventListener('keydown', function (e) {
+          myKey = e.keyCode;
+		  keyPressed(myKey);
+//		  draw();
+        })
+window.addEventListener('keyup', function (e) {
+          myKey = false;
+        })
+
+draw();
+
+// handle mousedown events
+function myDown(e) {
+
+    // tell the browser we're handling this mouse event
+    e.preventDefault();
+    e.stopPropagation();
+
+    // get the current mouse position
+    var mx = parseInt(e.clientX - offsetX);
+    var my = parseInt(e.clientY - offsetY);
+
+	
+	// test he fork to see if mouse is inside
+//    dragok = false;
+    if (mx > tuneFork.x && mx < tuneFork.x + tuneFork.width && my > tuneFork.y && my < tuneFork.y + tuneFork.height) {
+        // if yes, set that rects isDragging=true
+        dragok = true;
+        tuneFork.isDragging = true;
+    }
+    
+	
+    // save the current mouse position
+    startX = mx;
+    startY = my;
+}
+
+
+// handle mouseup events
+function myUp(e) {  
+    // tell the browser we're handling this mouse event
+    e.preventDefault();
+    e.stopPropagation();
+
+    // clear all the dragging flags
+
+	tuneFork.isDragging = false;
+}
+
+
+// handle mouse moves
+function myMove(e) {
+    // if we're dragging anything...
+    if (dragok) {
+
+        // tell the browser we're handling this mouse event
+        e.preventDefault();
+        e.stopPropagation();
+
+        // get the current mouse position
+        var mx = parseInt(e.clientX - offsetX);
+        var my = parseInt(e.clientY - offsetY);
+
+        // calculate the distance the mouse has moved
+        // since the last mousemove
+        var dx = mx - startX;
+        var dy = my - startY;
+
+        if (tuneFork.isDragging) {
+                tuneFork.x += dx;
+                tuneFork.y += dy;
+        }
+        // redraw the scene with the new rect positions
+        draw();
+
+        // reset the starting mouse position for the next mousemove
+        startX = mx;
+        startY = my;
+
+    }
+}
+
+
+
+
+
+</script>
+
+</body>
+</html>
